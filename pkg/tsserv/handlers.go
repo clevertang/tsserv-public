@@ -2,11 +2,51 @@ package tsserv
 
 import (
 	"fmt"
-	"net/http"
-	"time"
-
 	"github.com/tinkermode/tsserv/pkg/datasource"
+	"github.com/tinkermode/tsserv/pkg/logger"
+	"net/http"
+	"reflect"
+	"strings"
+	"time"
 )
+
+type RequestParams struct {
+	Begin time.Time `form:"begin"`
+	End   time.Time `form:"end"`
+}
+
+func parseRequestParams(request *http.Request, params interface{}) error {
+	v := reflect.ValueOf(params).Elem()
+	t := v.Type()
+
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		tag := t.Field(i).Tag.Get("form")
+
+		value := request.FormValue(tag)
+		if value == "" {
+			return fmt.Errorf("missing required parameter: %s", tag)
+		}
+
+		switch field.Kind() {
+		case reflect.String:
+			field.SetString(value)
+		case reflect.Int:
+			// handle integer fields if needed
+		case reflect.Struct:
+			if field.Type() == reflect.TypeOf(time.Time{}) {
+				parsedTime, err := time.Parse(time.RFC3339, value)
+				if err != nil {
+					return fmt.Errorf("Param '%s' must be in RFC3339 format", tag)
+				}
+				field.Set(reflect.ValueOf(parsedTime))
+			}
+		default:
+			return fmt.Errorf("unhandled default case")
+		}
+	}
+	return nil
+}
 
 func sayHello(response http.ResponseWriter, request *http.Request) {
 	if request.Method != http.MethodGet {
@@ -16,7 +56,9 @@ func sayHello(response http.ResponseWriter, request *http.Request) {
 
 	response.WriteHeader(http.StatusOK)
 	if _, err := response.Write([]byte("Hello\n")); err != nil {
-		errLogger.Printf("Failed to write response (%v)\n", err)
+		logger.ErrorLogger.Printf("Failed to write response (%v)\n", err)
+	} else {
+		logger.InfoLogger.Printf("Responded to /hello")
 	}
 }
 
@@ -26,29 +68,22 @@ func getRawDataPoints(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	paramBegin := request.FormValue("begin")
-	begin, err := time.Parse(time.RFC3339, paramBegin)
-	if err != nil {
-		sendErrorResponse(response, http.StatusBadRequest, "Param 'begin' must be in RFC3339 format")
-		return
-	}
-
-	paramEnd := request.FormValue("end")
-	end, err := time.Parse(time.RFC3339, paramEnd)
-	if err != nil {
-		sendErrorResponse(response, http.StatusBadRequest, "Param 'end' must be in RFC3339 format")
+	var params RequestParams
+	if err := parseRequestParams(request, &params); err != nil {
+		sendErrorResponse(response, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	ds := datasource.New()
 
-	cur, err := ds.Query(begin, end)
+	cur, err := ds.Query(params.Begin, params.End)
 	if err != nil {
 		sendErrorResponse(response, http.StatusForbidden, fmt.Sprintf("Failed to fetch data: %v", err))
 		return
 	}
 
 	response.WriteHeader(http.StatusOK)
+	var responseData string
 
 	for {
 		dp, ok := cur.Next()
@@ -56,9 +91,12 @@ func getRawDataPoints(response http.ResponseWriter, request *http.Request) {
 			break
 		}
 
-		if _, err := response.Write([]byte(fmt.Sprintf("%s %8.4f\n", dp.Timestamp.Format(time.RFC3339), dp.Value))); err != nil {
-			errLogger.Printf("Failed to write response (%v)\n", err)
-			break
-		}
+		responseData += fmt.Sprintf("%s %8.4f\n", dp.Timestamp.Format(time.RFC3339), dp.Value)
+	}
+
+	if _, err := response.Write([]byte(responseData)); err != nil {
+		logger.ErrorLogger.Printf("Failed to write response (%v)\n", err)
+	} else {
+		logger.InfoLogger.Printf("Responded to /data with %d data points", len(strings.Split(responseData, "\n"))-1)
 	}
 }

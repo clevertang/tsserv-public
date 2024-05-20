@@ -2,15 +2,11 @@
 package tsserv
 
 import (
+	"context"
 	"fmt"
-	"log"
+	"github.com/tinkermode/tsserv/pkg/logger"
 	"net/http"
-	"os"
 	"time"
-)
-
-var (
-	errLogger = log.New(os.Stderr, "[TSServ] ", log.LstdFlags)
 )
 
 type (
@@ -23,11 +19,12 @@ type (
 func sendErrorResponse(response http.ResponseWriter, status int, errMsg string) {
 	response.WriteHeader(status)
 	if _, err := response.Write([]byte(errMsg + "\n")); err != nil {
-		errLogger.Printf("Failed to write body: %v", err)
+		logger.ErrorLogger.Printf("Failed to write body: %v", err)
 	}
 }
 
 func New(port int) *Server {
+	// may be more new variables here like read time out, write time out, max header bytes
 	mux := http.NewServeMux()
 	mux.HandleFunc("/hello", sayHello)
 	mux.HandleFunc("/data", getRawDataPoints)
@@ -35,13 +32,18 @@ func New(port int) *Server {
 	httpServ := &http.Server{
 		Addr:           fmt.Sprintf(":%d", port),
 		Handler:        mux,
-		ErrorLog:       errLogger,
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
+		ErrorLog:       logger.ErrorLogger,
+		ReadTimeout:    10 * time.Second, // todo @tangxin may be need to change to a config or env variable
+		WriteTimeout:   10 * time.Second, // todo @tangxin may be need to change to a config or env variable
 		MaxHeaderBytes: 1 << 20,
 	}
 
 	return &Server{mux: mux, httpServ: httpServ}
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	logger.InfoLogger.Println("Shutting down server...")
+	return s.httpServ.Shutdown(ctx)
 }
 
 func (s *Server) Run() error {
