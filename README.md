@@ -25,7 +25,7 @@ implemented in Go and contains endpoints for retrieving data points in a specifi
 
 2. Build and run the server:
    ```sh
-   go build -o tsserv ./cmd/tsserv
+   go build -o tsserv ./cmd/server
    ./tsserv -p 8080
    ```
 
