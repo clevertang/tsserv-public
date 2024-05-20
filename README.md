@@ -1,49 +1,67 @@
+### Very Trivial Time Series Server
 
----
+This repository provides a simple HTTP server that generates and serves deterministic time series data. The server is implemented in Go and contains endpoints for retrieving data points in a specified time range.
 
-# Very Trivial Time Series Server
+#### Features
+- **/hello Endpoint:** Responds with a simple greeting message.
+- **/data Endpoint:** Returns time series data points within a specified range.
 
-This is a time series server that outputs data from a single deterministic time series.
+#### Project Structure
+- **cmd/tsserv:** Contains the main entry point for the server.
+- **pkg/tsserv:** Implements the server logic, including HTTP handlers.
+- **pkg/datasource:** Generates deterministic time series data.
+- **pkg/logger:** Provides logging utilities.
 
-## Table of Contents
-- [Overview](#overview)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Development](#development)
-- [License](#license)
+#### Getting Started
+1. Clone the repository:
+   ```sh
+   git clone https://github.com/clevertang/tsserv-public.git
+   cd tsserv-public
+   ```
 
-## Overview
-`tsserv-public` is a simple time series data server designed to provide deterministic time series output.
+2. Build and run the server:
+   ```sh
+   go build -o tsserv ./cmd/tsserv
+   ./tsserv -p 8080
+   ```
 
-## Installation
-To install the server, clone the repository and build the project:
+3. Access the endpoints:
+    - Greeting: `http://localhost:8080/hello`
+    - Time Series Data: `http://localhost:8080/data?begin=<RFC3339_start>&end=<RFC3339_end>`
 
-```sh
-git clone -b dev https://github.com/clevertang/tsserv-public.git
-cd tsserv-public
-go build ./cmd/server
-```
+#### Code Overview
+- **main.go:**
+    - Sets up and starts the server.
+    - Implements graceful shutdown.
 
-## Usage
-After building the project, you can run the server using:
+- **server.go:**
+    - Defines the `Server` struct.
+    - Initializes the HTTP server with endpoints.
 
-```sh
-./server
-```
+- **handlers.go:**
+    - Implements the `/hello` and `/data` endpoints.
+    - Uses `RequestParams` struct and `parseRequestParams` function for parsing query parameters.
 
-## Development
-### Running Tests
-To run the tests, use the following command:
+- **datasource/core.go:**
+    - Implements the logic for generating deterministic time series data.
+    - `Query` function creates a `Cursor` to iterate over the data points.
+    - `Cursor` struct handles the generation of data points using cosine functions for a pseudo-random yet deterministic output.
 
-```sh
-go test ./...
-```
+#### Testing
+1. Install dependencies:
+   ```sh
+   go get -u ./...
+   ```
 
-### Adding Unit Tests
-Unit tests can be added in the `_test.go` files. Ensure each test covers a specific functionality of the codebase.
+2. Run tests:
+   ```sh
+   go test ./...
+   ```
 
+#### Contribution
+Contributions are welcome. Please fork the repository and create a pull request for any improvements or bug fixes.
 
-## License
-there's no license for this project
+#### License
+This project is licensed under the MIT License.
 
----
+For more details, check out the [repository](https://github.com/clevertang/tsserv-public).
