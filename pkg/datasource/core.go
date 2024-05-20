@@ -68,6 +68,21 @@ func (ds *DataSource) Query(begin, end time.Time) (*Cursor, error) {
 	return cursor, nil
 }
 
+func (c *Cursor) resetCycle() {
+	c.cycle = c.cycle.Add(timePeriod)
+	c.rand = rand.New(rand.NewSource(c.cycle.Unix()))
+	c.base = math.Cos(0.0)
+	c.altBase = math.Cos(1.0)
+	c.altMultiplier = c.rand.Float64()
+	c.altPeriod = time.Duration(c.rand.Intn(int(timePeriod)/3)) + time.Hour*3
+	c.offset = 0
+}
+
+func (c *Cursor) updateBaseValues() {
+	c.base = math.Cos(math.Pi * 2.0 * (float64(c.offset) / float64(timePeriod)))
+	c.altBase = math.Cos(1.0 + math.Pi*2.0*(float64(c.offset)/float64(c.altPeriod)))
+}
+
 func (c *Cursor) Next() (*DataPoint, bool) {
 	if c.curTimestamp.After(c.endTimestamp) {
 		return nil, false
@@ -83,16 +98,10 @@ func (c *Cursor) Next() (*DataPoint, bool) {
 
 	if c.offset >= timePeriod {
 		// Reset for the next cycle.
-		c.cycle = c.cycle.Add(timePeriod)
-		c.rand = rand.New(rand.NewSource(c.cycle.Unix()))
-		c.base = math.Cos(0.0)
-		c.altBase = math.Cos(1.0)
-		c.altMultiplier = c.rand.Float64()
-		c.altPeriod = time.Duration(c.rand.Intn(int(timePeriod)/3)) + time.Hour*3
-		c.offset = 0
+		c.resetCycle()
 	} else {
-		c.base = math.Cos(math.Pi * 2.0 * (float64(c.offset) / float64(timePeriod)))
-		c.altBase = math.Cos(1.0 + math.Pi*2.0*(float64(c.offset)/float64(c.altPeriod)))
+		// update base
+		c.updateBaseValues()
 	}
 
 	return dp, true

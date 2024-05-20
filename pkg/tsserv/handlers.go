@@ -6,7 +6,6 @@ import (
 	"github.com/tinkermode/tsserv/pkg/logger"
 	"net/http"
 	"reflect"
-	"strings"
 	"time"
 )
 
@@ -83,7 +82,6 @@ func getRawDataPoints(response http.ResponseWriter, request *http.Request) {
 	}
 
 	response.WriteHeader(http.StatusOK)
-	var responseData string
 
 	for {
 		dp, ok := cur.Next()
@@ -91,12 +89,9 @@ func getRawDataPoints(response http.ResponseWriter, request *http.Request) {
 			break
 		}
 
-		responseData += fmt.Sprintf("%s %8.4f\n", dp.Timestamp.Format(time.RFC3339), dp.Value)
-	}
-
-	if _, err := response.Write([]byte(responseData)); err != nil {
-		logger.ErrorLogger.Printf("Failed to write response (%v)\n", err)
-	} else {
-		logger.InfoLogger.Printf("Responded to /data with %d data points", len(strings.Split(responseData, "\n"))-1)
+		if _, err := response.Write([]byte(fmt.Sprintf("%s %8.4f\n", dp.Timestamp.Format(time.RFC3339), dp.Value))); err != nil {
+			logger.ErrorLogger.Printf("Failed to write response (%v)\n", err)
+			break
+		}
 	}
 }
