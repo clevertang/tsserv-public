@@ -1,0 +1,57 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Output of the Go compiler
+*.o
+*.a
+*.out
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Temporary files created by editors
+*~
+*.swp
+
+# GoLand project files
+.idea/
+
+# GoLand logs
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+
+# GoLand settings
+.idea/**/shelf
+.idea/**/modules.xml
+.idea/**/misc.xml
+.idea/**/vcs.xml
+
+# GoLand build files
+out/
+
+# GoLand project and file options
+.idea/**/options.xml
+.idea/**/workspace.xml
+
+# GoLand JavaScript and Node.js support files
+.idea/**/jsLibraryMappings.xml
+.idea/**/codestyles
+
+# Directory-based project format
+.idea/**/inspectionProfiles
+
+# Caches
+.idea/**/caches
+.idea/**/tasks
+
+# User-specific files
+
+# Log files
+*.log
