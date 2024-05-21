@@ -29,6 +29,8 @@ type (
 		offset        time.Duration
 		curTimestamp  time.Time
 		endTimestamp  time.Time
+		baseCache     map[time.Time]float64
+		altBaseCache  map[time.Time]float64
 	}
 )
 
@@ -59,6 +61,8 @@ func (ds *DataSource) Query(begin, end time.Time) (*Cursor, error) {
 		altPeriod:     time.Duration(gen.Intn(int(timePeriod) / 3)),
 		curTimestamp:  chunkBegin,
 		endTimestamp:  end,
+		baseCache:     make(map[time.Time]float64),
+		altBaseCache:  make(map[time.Time]float64),
 	}
 
 	for cursor.curTimestamp.Before(begin) {
@@ -79,8 +83,19 @@ func (c *Cursor) resetCycle() {
 }
 
 func (c *Cursor) updateBaseValues() {
-	c.base = math.Cos(math.Pi * 2.0 * (float64(c.offset) / float64(timePeriod)))
-	c.altBase = math.Cos(1.0 + math.Pi*2.0*(float64(c.offset)/float64(c.altPeriod)))
+	if cachedBase, ok := c.baseCache[c.curTimestamp]; ok {
+		c.base = cachedBase
+	} else {
+		c.base = math.Cos(math.Pi * 2.0 * (float64(c.offset) / float64(timePeriod)))
+		c.baseCache[c.curTimestamp] = c.base
+	}
+
+	if cachedAltBase, ok := c.altBaseCache[c.curTimestamp]; ok {
+		c.altBase = cachedAltBase
+	} else {
+		c.altBase = math.Cos(1.0 + math.Pi*2.0*(float64(c.offset)/float64(c.altPeriod)))
+		c.altBaseCache[c.curTimestamp] = c.altBase
+	}
 }
 
 func (c *Cursor) Next() (*DataPoint, bool) {

@@ -6,6 +6,7 @@ import (
 	"github.com/tinkermode/tsserv/pkg/logger"
 	"net/http"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -74,24 +75,39 @@ func getRawDataPoints(response http.ResponseWriter, request *http.Request) {
 	}
 
 	ds := datasource.New()
-
 	cur, err := ds.Query(params.Begin, params.End)
 	if err != nil {
 		sendErrorResponse(response, http.StatusForbidden, fmt.Sprintf("Failed to fetch data: %v", err))
 		return
 	}
 
+	response.Header().Set("Content-Type", "text/plain")
 	response.WriteHeader(http.StatusOK)
+
+	var sb strings.Builder
+	bufferLimit := 1000
+	counter := 0
 
 	for {
 		dp, ok := cur.Next()
 		if !ok {
 			break
 		}
+		sb.WriteString(fmt.Sprintf("%s %8.4f\n", dp.Timestamp.Format(time.RFC3339), dp.Value))
+		counter++
+		if counter >= bufferLimit {
+			if _, err := response.Write([]byte(sb.String())); err != nil {
+				logger.ErrorLogger.Printf("Failed to write response (%v)\n", err)
+				break
+			}
+			sb.Reset()
+			counter = 0
+		}
+	}
 
-		if _, err := response.Write([]byte(fmt.Sprintf("%s %8.4f\n", dp.Timestamp.Format(time.RFC3339), dp.Value))); err != nil {
+	if sb.Len() > 0 {
+		if _, err := response.Write([]byte(sb.String())); err != nil {
 			logger.ErrorLogger.Printf("Failed to write response (%v)\n", err)
-			break
 		}
 	}
 }
