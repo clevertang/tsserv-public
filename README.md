@@ -70,3 +70,44 @@ Contributions are welcome. Please fork the repository and create a pull request 
 This project is licensed under the MIT License.
 
 For more details, check out the [repository](https://github.com/clevertang/tsserv-public).
+
+#### performance testing
+benchmarking the server using ab tool
+```sh
+ab -n 1000 -c 10 "http://localhost:8080/data?begin=2010-01-01T00:00:00Z&end=2020-01-02T00:00:00Z"
+```
+results:
+```
+Concurrency Level:      10
+Time taken for tests:   920.180 seconds
+Complete requests:      1000
+Failed requests:        216
+   (Connect: 0, Receive: 0, Length: 216, Exceptions: 0)
+Total transferred:      132859540464 bytes
+HTML transferred:       132859443464 bytes
+Requests per second:    1.09 [#/sec] (mean)
+Time per request:       9201.802 [ms] (mean)
+Time per request:       920.180 [ms] (mean, across all concurrent requests)
+Transfer rate:          141000.26 [Kbytes/sec] received
+```
+
+
+
+updated the server by using cache for updateBaseValues and write to http response in chunks
+```sh
+ab -n 1000 -c 10 "http://localhost:8080/data?begin=2010-01-01T00:00:00Z&end=2020-01-02T00:00:00Z"
+```
+results:
+```
+Concurrency Level:      10
+Time taken for tests:   1053.168 seconds
+Complete requests:      1000
+Failed requests:        999
+   (Connect: 0, Receive: 0, Length: 999, Exceptions: 0)
+Total transferred:      52198527000 bytes
+HTML transferred:       52198445000 bytes
+Requests per second:    0.95 [#/sec] (mean)
+Time per request:       10531.676 [ms] (mean)
+Time per request:       1053.168 [ms] (mean, across all concurrent requests)
+Transfer rate:          48401.72 [Kbytes/sec] received
+```
